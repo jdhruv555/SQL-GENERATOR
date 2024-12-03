@@ -2,3 +2,5 @@ flask==2.3.3
 groq>=0.4.3
 python-dotenv==1.0.0
 sqlalchemy==2.0.20
+gunicorn==21.2.0
+Werkzeug==2.3.7
