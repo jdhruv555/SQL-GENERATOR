@@ -6,24 +6,31 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
+# Import necessary modules
+from dotenv import load_dotenv
+load_dotenv()
+
+# Create Flask app
 app = Flask(__name__, 
             template_folder='../templates', 
             static_folder='../static')
 
-# Import your original routes and functionality
+# Import routes from main application
 from app import *
 
+# Vercel serverless function entry point
+def handler(event, context):
+    return app
+
+# Fallback route
 @app.route('/')
 def home():
     return render_template('index.html')
 
-@app.route('/api/hello')
-def hello():
-    return jsonify({"message": "Hello from Vercel!"})
+# Additional error handling
+@app.errorhandler(Exception)
+def handle_error(e):
+    return jsonify(error=str(e)), 500
 
-def create_app():
-    return app
-
-# Vercel serverless function entry point
-def main(request):
-    return app(request.environ, lambda x, y: None)
+# Ensure the app can be imported and used
+application = app
