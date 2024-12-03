@@ -10,6 +10,9 @@ app = Flask(__name__,
             template_folder='../templates', 
             static_folder='../static')
 
+# Import your original routes and functionality
+from app import *
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -21,6 +24,6 @@ def hello():
 def create_app():
     return app
 
-# Vercel serverless function handler
-def handler(event, context):
-    return app
+# Vercel serverless function entry point
+def main(request):
+    return app(request.environ, lambda x, y: None)
