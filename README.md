@@ -1,12 +1,54 @@
 # AI SQL Query Generator
 
-A web application that generates SQL queries from natural language descriptions, with support for saving and managing database column descriptions.
+## Deployment
+
+### Vercel Deployment
+
+1. Fork the repository
+2. Connect your GitHub repository to Vercel
+3. Set environment variables:
+   - `GROQ_API_KEY`: Your Groq API key
+   - `PYTHON_VERSION`: 3.9 or 3.10
+
+### Local Development
+
+1. Clone the repository
+2. Create a virtual environment
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+3. Install dependencies
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Set up environment variables
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Groq API key
+   ```
+5. Run the application
+   ```bash
+   flask run
+   ```
 
 ## Features
-- Natural language to SQL query conversion using Groq's Mixtral model
-- Save and manage database schema descriptions
-- Simple web interface for query generation
-- Support for common SQL operations
+
+- Natural language to SQL query conversion
+- AI-powered query generation
+- Responsive web interface
+- Dynamic schema management
+
+## Technologies
+
+- Flask
+- Groq API
+- Tailwind CSS
+- Python 3.9+
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss proposed changes.
 
 ## Setup
 1. Install dependencies:
