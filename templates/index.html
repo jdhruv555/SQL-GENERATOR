@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SQL Query Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/sql/sql.min.js"></script>
+    <style>
+        .tech-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom right, #0f172a, #1e293b);
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .tech-grid {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            transform-origin: center;
+            animation: grid-move 20s linear infinite;
+        }
+
+        .floating-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            animation: float 6s infinite;
+        }
+
+        @keyframes grid-move {
+            0% {
+                transform: translateY(-50%) rotate(0deg);
+            }
+            100% {
+                transform: translateY(-50%) rotate(360deg);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+            }
+            50% {
+                transform: translateY(-20px) translateX(10px);
+            }
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .glow {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .code-area {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .example-query {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .example-query:hover {
+            transform: translateY(-2px);
+        }
+
+        .CodeMirror {
+            height: auto;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .schema-badge {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 1rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .schema-badge:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            background-color: rgba(15, 23, 42, 0.95);
+            color: #fff;
+            text-align: center;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-100">
+    <div class="tech-background">
+        <div class="tech-grid"></div>
+        <div class="floating-particles" id="particles"></div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 relative">
+        <h1 class="text-4xl font-bold mb-2 text-center glow bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">AI SQL Query Generator</h1>
+        <p class="text-center mb-8 text-blue-200 opacity-80">Transform natural language into powerful SQL queries</p>
+
+        <!-- Quick Start Guide -->
+        <div class="mb-8 glass-effect p-6 rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-300">Example Queries</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="example-query glass-effect p-4 rounded-lg" onclick="setExampleQuery('Show me all pending orders with total amount greater than $100')">
+                    <h3 class="text-blue-300 font-semibold mb-2">Basic Filtering</h3>
+                    <p class="text-sm text-blue-100 opacity-80">Show me all pending orders with total amount greater than $100</p>
+                </div>
+                <div class="example-query glass-effect p-4 rounded-lg" onclick="setExampleQuery('Find the top 5 customers by total order value who have made at least 3 orders')">
+                    <h3 class="text-blue-300 font-semibold mb-2">Aggregation & Ranking</h3>
+                    <p class="text-sm text-blue-100 opacity-80">Find the top 5 customers by total order value who have made at least 3 orders</p>
+                </div>
+                <div class="example-query glass-effect p-4 rounded-lg" onclick="setExampleQuery('Show me the most popular product category by total sales amount in each month of 2023')">
+                    <h3 class="text-blue-300 font-semibold mb-2">Time-based Analysis</h3>
+                    <p class="text-sm text-blue-100 opacity-80">Show me the most popular product category by total sales amount in each month of 2023</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Schema Management Section -->
+        <div class="mb-8 glass-effect p-6 rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-300">Database Schema</h2>
+            <div class="flex gap-4 mb-4">
+                <div class="flex-1">
+                    <input type="text" id="columnName" placeholder="Table.Column name (e.g., users.email)" 
+                           class="w-full p-2 rounded bg-gray-800/50 border border-blue-500/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-100">
+                    <p class="text-xs text-blue-300 mt-1">Format: table.column</p>
+                </div>
+                <div class="flex-1">
+                    <input type="text" id="description" placeholder="Column description" 
+                           class="w-full p-2 rounded bg-gray-800/50 border border-blue-500/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-100">
+                    <p class="text-xs text-blue-300 mt-1">Brief description of the column</p>
+                </div>
+                <button onclick="addDescription()" 
+                        class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-colors duration-200 shadow-lg shadow-blue-500/20">
+                    Add Column
+                </button>
+            </div>
+            <div id="schemaList" class="space-y-2"></div>
+        </div>
+
+        <!-- Query Generation Section -->
+        <div class="glass-effect p-6 rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-300">Generate SQL Query</h2>
+            <textarea id="queryDescription" 
+                      placeholder="Describe your query in plain English... (e.g., 'Show me all pending orders with total amount greater than $100')" 
+                      class="w-full p-4 rounded mb-4 h-32 code-area text-blue-100 placeholder-blue-300/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+            <button onclick="generateQuery()" 
+                    class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded hover:from-blue-700 hover:to-purple-700 transition-all duration-200 w-full shadow-lg shadow-purple-500/20">
+                Generate Query
+            </button>
+            <div id="result" class="mt-4 hidden">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-lg font-semibold text-blue-300">Generated SQL</h3>
+                    <button onclick="copyQuery()" 
+                            class="bg-gray-700/50 text-white px-4 py-1 rounded hover:bg-gray-600/50 transition-colors duration-200">
+                        Copy Query
+                    </button>
+                </div>
+                <div id="editor" class="rounded"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize CodeMirror
+        let editor;
+        
+        function initializeCodeMirror() {
+            const editorElement = document.getElementById('editor');
+            editor = CodeMirror(editorElement, {
+                mode: 'sql',
+                theme: 'dracula',
+                lineNumbers: true,
+                readOnly: true,
+                lineWrapping: true
+            });
+        }
+
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.width = Math.random() * 4 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Set example query
+        function setExampleQuery(query) {
+            document.getElementById('queryDescription').value = query;
+            generateQuery();
+        }
+
+        // Load existing schema descriptions
+        async function loadSchemaDescriptions() {
+            const response = await fetch('/api/schema');
+            const data = await response.json();
+            updateSchemaList(data);
+        }
+
+        // Update schema list display
+        function updateSchemaList(descriptions) {
+            const schemaList = document.getElementById('schemaList');
+            schemaList.innerHTML = '';
+            
+            // Group by table
+            const tableGroups = {};
+            for (const [key, desc] of Object.entries(descriptions)) {
+                const [table, column] = key.split('.');
+                if (!tableGroups[table]) {
+                    tableGroups[table] = [];
+                }
+                tableGroups[table].push({ column, desc });
+            }
+            
+            // Create table groups
+            for (const [table, columns] of Object.entries(tableGroups)) {
+                const tableDiv = document.createElement('div');
+                tableDiv.className = 'mb-4';
+                tableDiv.innerHTML = `
+                    <h3 class="text-lg font-semibold text-blue-300 mb-2">${table}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        ${columns.map(({column, desc}) => `
+                            <div class="schema-badge tooltip">
+                                <span class="font-mono">${column}</span>
+                                <span class="tooltiptext">${desc}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                schemaList.appendChild(tableDiv);
+            }
+        }
+
+        // Add new description
+        async function addDescription() {
+            const name = document.getElementById('columnName').value.trim();
+            const desc = document.getElementById('description').value.trim();
+            
+            if (!name || !desc) {
+                alert('Please provide both table.column name and description');
+                return;
+            }
+
+            if (!name.includes('.')) {
+                alert('Column name must be in format: table.column');
+                return;
+            }
+
+            const response = await fetch('/api/schema', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({[name]: desc})
+            });
+
+            if (response.ok) {
+                document.getElementById('columnName').value = '';
+                document.getElementById('description').value = '';
+                loadSchemaDescriptions();
+            }
+        }
+
+        // Generate SQL query
+        async function generateQuery() {
+            const description = document.getElementById('queryDescription').value.trim();
+            if (!description) {
+                alert('Please enter a query description');
+                return;
+            }
+
+            const button = document.querySelector('button[onclick="generateQuery()"]');
+            button.innerHTML = '<span class="animate-pulse">Generating...</span>';
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({description})
+                });
+
+                const data = await response.json();
+                
+                if (data.query) {
+                    document.getElementById('result').classList.remove('hidden');
+                    editor.setValue(data.query);
+                    editor.refresh();
+                }
+            } catch (error) {
+                alert('Error generating query: ' + error.message);
+            } finally {
+                button.innerHTML = 'Generate Query';
+                button.disabled = false;
+            }
+        }
+
+        // Copy generated query
+        function copyQuery() {
+            const query = editor.getValue();
+            navigator.clipboard.writeText(query);
+            const button = document.querySelector('button[onclick="copyQuery()"]');
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 2000);
+        }
+
+        // Initialize
+        createParticles();
+        initializeCodeMirror();
+        loadSchemaDescriptions();
+        
+    </script>
+
+        <!-- Copyright Footer -->
+        <footer class="text-center py-6 text-blue-300/70 relative z-10">
+            <div class="glass-effect px-4 py-2 inline-block rounded-full">
+                <span class="font-mono">© Dhruv Jha 2024</span>
+            </div>
+        </footer>
+    </body>
+    </html>
+   
