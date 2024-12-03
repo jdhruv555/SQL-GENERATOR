@@ -1,26 +1,21 @@
-from flask import Flask, request, jsonify, render_template
-from groq import Groq
-from dotenv import load_dotenv
+from flask import Flask, jsonify, render_template
 import os
-import json
-from pathlib import Path
+import sys
 
-# Load environment variables
-load_dotenv()
+# Add the project root directory to Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
 
-app = Flask(__name__, template_folder='../templates')
+# Import the original app
+from app import app as application
 
-# Copy all your existing route handlers from app.py here
-# (Paste the entire content of your current app.py)
+def handler(event, context):
+    return application
 
-@app.route('/')
+@application.route('/')
 def home():
     return render_template('index.html')
 
-# Vercel requires a specific handler
+# Vercel requires a specific entry point
 def create_app():
-    return app
-
-# For Vercel serverless functions
-def handler(event, context):
-    return app
+    return application
